@@ -1,8 +1,8 @@
 ## Turn based game framework
-[rot.js](http://ondras.github.io/rot.js/hp/) is a library for making roguelikes on js.  I just extracted the "simple scheduler" type (no time managed)  code to have some extra features on any potential turn based game.
+[rot.js](http://ondras.github.io/rot.js/hp/) is a library for making roguelikes on js.  I just extracted the "simple scheduler" type (no speed managed)  code to have some extra features on any potential turn based game.
  
 ## Usage
-Add any object implementing an **act()** method to a instance of Scheduler. 
+Add any object implementing an **act()** method to a Scheduler instance. 
 
 ```sh
 var a = new Actor();
