@@ -120,7 +120,6 @@ Actor.prototype.act = function(){
 
 Actor.prototype.handleEvent = function(e) {
 	console.log('Actor');
-	objects[sprites[1].x][sprites[1].y] = 0;
 	if (e.keyCode == '38') {
        sprites[1].y-=1;
     }
@@ -133,7 +132,6 @@ Actor.prototype.handleEvent = function(e) {
     else if (e.keyCode == '39') {
        sprites[1].x+=1;
     }
-	objects[sprites[1].x][sprites[1].y] = 1;
 	
 	window.removeEventListener("keydown", this);
 	engine.unlock();
@@ -141,15 +139,38 @@ Actor.prototype.handleEvent = function(e) {
 
 Enemy = function(id){
 	this._id = id;
+	this.promise = null;
 }
-
+var c = 0;
 Enemy.prototype.act = function(){
-	objects[sprites[2].x][sprites[2].y] = 0;
-	sprites[2].x+=1;
-	objects[sprites[2].x][sprites[2].y] = 2;
-	console.log('Enemy' + this._id);
+	var done = null;
+	this.promise = {
+		pendent : null,
+		then: function(cb) { 
+			done = cb; 
+			sprites[2].x++;
+	
+			if(c++>3){
+				sprites[3].x = sprites[2].x;
+				sprites[3].y = sprites[2].y;
+				sprites[3].vel = 1;
+				objects.push(sprites[3]);
+				this.pendent = done;
+				c=0;
+			}else{
+				done();
+			}
+			
+		}
+	}
+	
+	return this.promise;
 }
 
+Enemy.prototype.done = function(){
+	if(this.promise.pendent != null)
+		this.promise.pendent();
+}
 
 if (!window.requestAnimationFrame) {
 
@@ -168,14 +189,45 @@ if (!window.requestAnimationFrame) {
     })();
 
 }
+var dim = 10;
+var objects = [];
+var map= [];
 
-
+for(var i=0;i<dim;i++){
+	var row = [];
+	for(var j=0;j<dim;j++){
+		row.push(0);
+	}
+	map.push(row);
+}
 
 function anim() {
     requestAnimationFrame(anim);
+	update();
     draw();
 }
-
+var lastD = new Date();
+function update(){
+	for(var i=0;i<objects.length;i++){
+		var sprite = objects[i];
+		if(sprite.vel>0){
+			var newD = new Date();
+			var delta = new Date(newD- lastD);
+			
+			if(delta.getMilliseconds()>300){
+				sprite.x -=sprite.vel;
+				sprite.y +=sprite.vel;
+				lastD = new Date();
+				
+				if(sprite.y>4){
+					console.log(objects)
+					e1.done();
+					objects.splice(2,1);
+				}
+			}
+		}
+	}
+}
 function draw() {
     // Put your code here
 	//console.log('here')
@@ -189,19 +241,13 @@ function draw() {
 	}
 	
 	for(var i=0;i<objects.length;i++){
-		for(var j=0;j<objects[0].length;j++){
-			if(objects[i][j]!=0){
-				var sprite = sprites[objects[i][j]];
-				ctx.drawImage(sprite.image, sprite.getFrame()*20, 0, 20, 20, i*20, j*20, 20, 20);
-			}
-		}
+		var sprite = objects[i];
+		ctx.drawImage(sprite.image, sprite.getFrame()*20, 0, 20, 20, sprite.x*20, sprite.y*20, 20, 20);
 	}
-	
 }
+	
 
 var sprites = [];
-var map = [[0,0,0],[0,0,0],[0,0,0]];
-var objects = [[0,0,0],[0,0,0],[0,0,0]];
 
 Sprite = function(img, frames,x,y){
 	this.image = img;
@@ -212,6 +258,7 @@ Sprite = function(img, frames,x,y){
 	
 	this.x=x;
 	this.y=y;
+	this.vel =0;
 }
 
 Sprite.prototype.getFrame = function(){
@@ -278,15 +325,18 @@ var onImageLoad = function(){
 
 var onImageLoad2 = function(){
 	var s = new Sprite(img2, [0,0,1,2,2,2,2,3],0,0);
+	var bullet  = new Sprite(img2, [0],0,0);
 	//enemy animation
 	sprites.push(s);
+	sprites.push(bullet);
 	
-	objects[sprites[1].x][sprites[1].y] = 1;
-	objects[sprites[2].x][sprites[2].y] = 2;
+	objects.push(sprites[1]);
+	objects.push(sprites[2]);
 	anim();
 }
 
 var body, canvas, ctx, img, img2;
+var e1;
 
 window.onload = function(){
 
@@ -294,8 +344,8 @@ window.onload = function(){
 	canvas = document.createElement('canvas');
 	ctx = canvas.getContext('2d');
 	
-	canvas.width = 120;
-	canvas.height = 120;
+	canvas.width = map.length*30;
+	canvas.height = map[0].length*30;
 
 	body.appendChild(canvas);
 	ctx.mozImageSmoothingEnabled = false;
@@ -304,7 +354,7 @@ window.onload = function(){
 	ctx.imageSmoothingEnabled = false;
 	ctx.scale(2,2);
 	var a = new Actor();
-	var e1 = new Enemy(1);
+ e1 = new Enemy(1);
 	var e2 = new Enemy(2);
 	
 	var s = new Scheduler();
